@@ -1,91 +1,108 @@
-import Image from 'next/image'
-import { Inter } from '@next/font/google'
-import styles from './page.module.css'
+"use client";
 
-const inter = Inter({ subsets: ['latin'] })
+import ChatMessage from "../components/ChatMessage";
+import { useState, useEffect } from "react";
+import { HiPlus } from "react-icons/hi";
 
-export default function Home() {
+const INITIAL_STATE = {
+  user: "gpt",
+  message: "How can i help you today ?",
+};
+
+const Chat = () => {
+  const [input, setInput] = useState<string>("");
+  const [models, setModels] = useState<{ id: string }[]>([]);
+  const [chatLog, setChatLog] = useState<{ user: string; message: string }[]>([
+    INITIAL_STATE,
+  ]);
+
+  const clearChat = () => {
+    setChatLog([INITIAL_STATE]);
+  };
+
+  // const getEngines = () => {
+  //   fetch("http:localhost:3000/models")
+  //     .then(res => res.json())
+  //     .then(data => {
+  //       console.log(data.models.data);
+  //       setModels(data.models.data);
+  //     });
+  // };
+
+  // useEffect(() => {
+  //   getEngines();
+  // }, []);
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    let newChatLog = [...chatLog, { user: "human", message: `${input}` }];
+    setInput("");
+    setChatLog(newChatLog);
+    const messages = newChatLog.map(message => message.message);
+
+    const response = await fetch("/api/openai", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        message: messages,
+      }),
+    });
+    const data = await response.json();
+    setChatLog([...newChatLog, { user: "gpt", message: `${data.result}` }]);
+  };
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>app/page.tsx</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+    <div className="bg-gray-700 text-white/90 min-h-screen text-center flex">
+      {/* Aside */}
+      <aside className="w-64 bg-gray-900 p-[10px]">
+        {/* New Chat Button */}
+        <button
+          type="button"
+          onClick={clearChat}
+          className="w-full p-3 border border-white/30 rounded-md text-left flex items-center gap-4 hover:bg-gray-800 transition duration-400"
+        >
+          <HiPlus />
+          New Chat
+        </button>
+
+        {/* Models List */}
+        {/* <div>
+          <select>
+            {models.map((model, index: number) => (
+              <option key={index} value={model.id}>
+                {model.id}
+              </option>
+            ))}
+          </select>
+        </div> */}
+      </aside>
+
+      {/* ChatLog */}
+      <section className="relative flex-1 text-left">
+        {/* Chat Message */}
+        {chatLog.map((message, index) => (
+          <div
+            className={`${message.user === "gpt" ? "bg-gray-800" : ""}`}
+            key={index}
           >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+            <ChatMessage user={message.user} message={message.message} />
+          </div>
+        ))}
+        {/* Bottom Prompt */}
+        <div className="p-6 absolute bottom-0 left-0 right-0 max-w-2xl mx-auto">
+          <form onSubmit={handleSubmit}>
+            <input
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              className="bg-gray-600 w-full rounded-md border-none p-3 text-xl outline-none shadow-md"
+            ></input>
+          </form>
         </div>
-      </div>
+      </section>
+    </div>
+  );
+};
 
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-        <div className={styles.thirteen}>
-          <Image src="/thirteen.svg" alt="13" width={40} height={31} priority />
-        </div>
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://beta.nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>Explore the Next.js 13 playground.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={inter.className}>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p className={inter.className}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
-  )
-}
+export default Chat;
